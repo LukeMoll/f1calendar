@@ -20,6 +20,9 @@ print(f"Initialised display (type={DISPLAY}), {WIDTH}x{HEIGHT}")
 graphics.set_font("bitmap8")
 
 def bars():
+    """
+        Draw horizontal bars on the screen with each colour
+    """
     graphics.set_pen(WHITE)
     graphics.clear()
     
@@ -35,6 +38,9 @@ def bars():
     ih.led_warn.off()
 
 def connect_wifi():
+    """
+        Connect to WiFi (defined in secrets.py)
+    """
     try:
         from secrets import WIFI_PASSWORD, WIFI_SSID
         ih.network_connect(WIFI_SSID, WIFI_PASSWORD)
@@ -47,32 +53,17 @@ def connect_wifi():
         print("Other exception:", e)
         return False
 
-def get_img():
+def draw_image_from_web():
+    """
+        Download an indexed PNG and draw it on the screen
+    """
     from secrets import ENDPOINT
     # bars.png is an indexed 480x800 image.
     url = ENDPOINT + "bars.png"
     print("Opening", url)
-    socket = urequest.urlopen(url)
     
-    alloc = gc.mem_alloc()
-    free = gc.mem_free()
-    percent = alloc/(alloc+free)
-    print(f"{alloc=}\n{free=}\n{percent=:.2%}")
-    
-    try:
-        data = bytearray(4096)
-        while True:
-            # TODO: we need to get this all in one go.
-            count = socket.readinto(data)
-            if count == 0:
-                break
-            else: print(f"{count=}")
-        print(f"Done reading")
-        socket.close()
-        gc.collect()
-    except MemoryError as e:
-        print(e)
-        return
+    data = download_to_ram(url)
+    print(f"Download succeeded with buffer size {len(data)}")
     
     png = pngdec.PNG(graphics)
     png.open_RAM(data)
@@ -82,8 +73,37 @@ def get_img():
     graphics.update()
     ih.led_warn.off()
     
+    
+def download_to_ram(url):
+    """
+        Make a web request and store its output in a single bytearray. If the array is too small, the request is retried until we run out of RAM!
+    """
+    try:
+        size = 128
+        while True:
+            socket = urequest.urlopen(url)
+            data = bytearray(size)
+            socket.readinto(data) # Read as much as we can into the buffer
+            if socket.readinto(data) != 0:
+                # There's still data left - so the buffer must not be big enough!
+                print(f"Download failed with buffer size {size}")
+                size *= 2
+                data = None
+                socket.close()
+                gc.collect()
+                continue
+            else:
+                # Full read was successful
+                return data
+    except MemoryError as e:
+        print(e)
+        return # None
+    finally:
+        socket.close()
+        gc.collect()
 
-connect_wifi()
-get_img()
-# bars()
-print("Done!")
+if __name__ == "__main__":
+    connect_wifi()
+    draw_image_from_web()
+    # bars()
+    print("Done!")
