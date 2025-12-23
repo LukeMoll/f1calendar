@@ -2,17 +2,20 @@ import time
 import gc
 
 import machine
+
 import ntptime
 
 from urllib import urequest
 import inky_helper as ih
 from inky_frame import BLACK, WHITE, GREEN, BLUE, RED, YELLOW, ORANGE, TAUPE
+import inky_frame
 PALETTE = [BLACK, WHITE, GREEN, BLUE, RED, YELLOW, ORANGE, TAUPE]
 from picographics import DISPLAY_INKY_FRAME_7 as DISPLAY, PicoGraphics
 import pngdec
 
+
 # To allow USB to initialise
-time.sleep(0.5)
+time.sleep(1)
 
 ih.clear_button_leds()
 ih.led_warn.off()
@@ -49,12 +52,19 @@ def connect_wifi():
         ih.network_connect(WIFI_SSID, WIFI_PASSWORD)
         print(f"Connected to network '{WIFI_SSID}'")
         return True
-    except ImportError as e:
-        print("Create secrets.py with WIFI_SSID and WIFI_PASSWORD", e)
+    except ImportError:
+        print("Create secrets.py with WIFI_SSID and WIFI_PASSWORD")
         return False
-    except e:
+    except Exception as e:
         print("Other exception:", e)
         return False
+
+def disconnect_wifi():
+    import network
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(False)
+    ih.stop_network_led()
+
 
 def update_rtc():
     ntptime.timeout = 15
@@ -86,15 +96,52 @@ def draw_image_from_web():
     print("Opening", url)
     
     data = download_to_ram(url)
+    if data is None:
+        print("Download failed!")
+        return
     print(f"Download succeeded with buffer size {len(data)}")
     
     png = pngdec.PNG(graphics)
     png.open_RAM(data)
     png.decode()
     
-    ih.led_warn.on()
-    graphics.update()
-    ih.led_warn.off()
+def draw_time():
+    graphics.set_font("sans")
+    graphics.set_thickness(6)
+    
+    rtc = machine.RTC()
+    current_t = rtc.datetime()
+    date_str = f"{current_t[2]}/{current_t[1]}/{current_t[0]}"
+    time_str = f"{current_t[4]}:{current_t[5]:02}:{current_t[6]:02}"
+    
+    scale = 1.0
+    while True:
+        new_scale = scale * 1.1
+        width_date = graphics.measure_text(date_str, new_scale)
+        width_time = graphics.measure_text(time_str, new_scale)
+        if max(width_date, width_time) > WIDTH/2:
+            break
+        else:
+            scale = new_scale
+
+    # Measure again with final scale
+    width_date = graphics.measure_text(date_str, scale)
+    width_time = graphics.measure_text(time_str, scale)
+    text_width = max(width_date,width_time)
+    
+    margin = WIDTH * 0.025 # 2.5% margin
+    
+    graphics.set_pen(WHITE)
+    graphics.rectangle (
+        int(margin),
+        int(HEIGHT/2 - (30*scale + margin)),
+        int(text_width + margin * 2),
+        int (45 * scale + margin * 2)
+    )
+    
+    graphics.set_pen(BLACK)
+    graphics.text(time_str, int(margin), int(HEIGHT/2 - (20*scale)), scale=scale)
+    graphics.text(date_str, int(margin), int(HEIGHT/2 + (12*scale)), scale=scale)
     
     
 def download_to_ram(url):
@@ -118,16 +165,28 @@ def download_to_ram(url):
             else:
                 # Full read was successful
                 return data
-    except MemoryError as e:
-        print(e)
+    except MemoryError:
+        print("MemoryError!")
         return # None
     finally:
         socket.close()
         gc.collect()
 
+def update_epd():    
+    ih.led_warn.on()
+    graphics.update()
+    ih.led_warn.off()
+
 if __name__ == "__main__":
-    connect_wifi()
+    while not connect_wifi():
+        time.sleep(2)
     update_rtc()
-    # draw_image_from_web()
-    # bars()
-    print("Done!")
+    draw_image_from_web()
+    disconnect_wifi()
+    draw_time()
+    
+    update_epd()
+
+    inky_frame.sleep_for(1) # minutes
+    
+        
