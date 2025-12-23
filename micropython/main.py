@@ -1,6 +1,9 @@
 import time
 import gc
 
+import machine
+import ntptime
+
 from urllib import urequest
 import inky_helper as ih
 from inky_frame import BLACK, WHITE, GREEN, BLUE, RED, YELLOW, ORANGE, TAUPE
@@ -53,6 +56,26 @@ def connect_wifi():
         print("Other exception:", e)
         return False
 
+def update_rtc():
+    ntptime.timeout = 15
+    
+    rtc = machine.RTC()
+    before_ticks_u = time.ticks_us()
+    before_time_n = time.time_ns()
+    try:
+        ntptime.settime()
+        after_ticks_u = time.ticks_us()
+        after_time_n = time.time_ns()
+        
+        delta_time = (after_time_n - before_time_n) / 1_000_000_000
+        delta_ticks = (after_ticks_u - before_ticks_u) / 1_000_000
+        print(f"Updated time from NTP. Time difference = {delta_time:.1f} (elapsed {delta_ticks:.1f})")
+        
+        current_t = rtc.datetime()
+        print(f"{current_t[0]}-{current_t[1]}-{current_t[2]} {current_t[4]}:{current_t[5]:02}:{current_t[6]:02}")
+    except OSError as e:
+        print("Unable to contact NTP server:", e)    
+
 def draw_image_from_web():
     """
         Download an indexed PNG and draw it on the screen
@@ -104,6 +127,7 @@ def download_to_ram(url):
 
 if __name__ == "__main__":
     connect_wifi()
-    draw_image_from_web()
+    update_rtc()
+    # draw_image_from_web()
     # bars()
     print("Done!")
