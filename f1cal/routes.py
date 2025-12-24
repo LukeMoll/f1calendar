@@ -72,11 +72,9 @@ def text_inky(draw : ImageDraw, epd : EPaperDisplay):
 @route('/inky/countdown')
 @serve_image_inky
 def countdown_inky(draw : ImageDraw, epd : EPaperDisplay):
-    # next_gp = schedule.get_next_grand_prix()
-    # days : int = (next_gp.DTSTART - dt.now(tz.utc)).days
-    print("Warning: hard-coded days=75")
-    days = 75
-
+    next_gp = schedule.get_next_grand_prix()
+    days : int = (next_gp.DTSTART - dt.now(tz.utc)).days
+    
     draw.rectangle([0,0, epd.WIDTH, epd.WIDTH], fill=InkyCol.BLACK.value)
 
     font = F1Bold(300)
