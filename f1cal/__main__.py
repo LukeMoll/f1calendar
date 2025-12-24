@@ -1,6 +1,8 @@
 from bottle import run
 
 # Import to run all the decorators
+from . import routes
+print(f"Imported routes from {routes.__name__}")
 
 print("Running Waitress server on 0.0.0.0:8000...")
 
