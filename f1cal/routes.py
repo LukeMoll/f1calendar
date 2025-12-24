@@ -1,6 +1,7 @@
 from PIL import ImageDraw
 from bottle import route
 from datetime import datetime as dt, timezone as tz
+from typing import Final
 
 from .data_sources import schedule
 from .font import F1Reg, F1Bold, F1Wide
@@ -18,13 +19,13 @@ def hello_inky(draw: ImageDraw, epd: EPaperDisplay):
     """
         "Test pattern" colour bars
     """
-    NUM_COLS = len(InkyCol)
-    print(f"{NUM_COLS=}")
-    COL_WIDTH = epd.WIDTH / NUM_COLS
+    num_cols: Final[int] = len(InkyCol)
+    print(f"{num_cols=}")
+    col_width: Final[float] = epd.WIDTH / num_cols
 
     for i, colour in enumerate(InkyCol):
-        start_xy = (i * COL_WIDTH, 0)
-        end_xy = ((i + 1) * COL_WIDTH, epd.HEIGHT)
+        start_xy = (i * col_width, 0)
+        end_xy = ((i + 1) * col_width, epd.HEIGHT)
         print(i, colour, start_xy, end_xy)
         draw.rectangle([start_xy, end_xy], fill=colour.value, width=0)
 
@@ -38,7 +39,7 @@ def text_inky(draw: ImageDraw, epd: EPaperDisplay):
 
     margin = epd.WIDTH * 0.05
 
-    active_width = epd.WIDTH - margin * 2
+    active_width = int(epd.WIDTH - margin * 2)
 
     script1 = "\"Leclerc has that inside line. Perez goes off the track, cuts the chicane. Off goes Leclerc...\""
     script2 = "Through goes Hamilton, unbelievable stuff!"
@@ -115,4 +116,4 @@ def countdown_inky(draw: ImageDraw, epd: EPaperDisplay):
         fill=InkyCol.RED.value
     )
 
-    draw.text([0, 0], anchor="la", text="2026 Formula 1 World Champtionship", font=F1Wide(18), fill=InkyCol.WHITE.value)
+    draw.text([0, 0], anchor="la", text="2026 Formula 1 World Championship", font=F1Wide(18), fill=InkyCol.WHITE.value)

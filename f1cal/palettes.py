@@ -7,7 +7,8 @@ from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum, EnumMeta, auto
 
 
-class _AbstractEnumMeta(EnumMeta, ABCMeta): pass
+class _AbstractEnumMeta(EnumMeta, ABCMeta):
+    pass
 
 
 class Palette(ABC, Enum, metaclass=_AbstractEnumMeta):
@@ -44,6 +45,7 @@ class Inky(Palette):
     ORANGE = auto()
     TAUPE = auto()
 
+    # noinspection PyRedundantParentheses
     def to_rgb(self) -> tuple[int, int, int]:
         # https://github.com/pimoroni/inky/issues/115#issuecomment-872426157
         match self:
@@ -67,7 +69,7 @@ class Inky(Palette):
                 raise IndexError(f"Invalid colour {self.value} for {self.__class__.__name__}")
 
 
-if __name__ == "__main__":
+def main():
     for pal in (Inky,):
         print(f"--- {pal.__name__}: {len(pal)} values ({pal.palette_bits()} bits) ---")
         for i, e in enumerate(pal):
@@ -78,3 +80,7 @@ if __name__ == "__main__":
             section = lst[i * 3:(i * 3) + 3]
             if section != [0, 0, 0]:
                 print(i, section)
+
+
+if __name__ == "__main__":
+    main()  # Use main function so this code doesn't trigger `Shadows name from outer scope` warnings.

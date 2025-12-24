@@ -1,17 +1,17 @@
 """
     Copied from fridgemagnet project
 """
+import typing
 from PIL import Image, ImageDraw, ImageFont
 from bottle import request, response
 from io import BytesIO
 from typing import Generator
 
-from .palettes import Inky as InkyCol
-from .palettes import _AbstractEnumMeta
+from .palettes import Inky as InkyCol, Palette
 
 
 def break_lines(text: str, draw: ImageDraw.ImageDraw, font: ImageFont.ImageFont, width: int) -> Generator[
-    str, None, None]:
+        str, None, None]:
     """
         Split `str` into multiple strings, such that they all fit within `width` when drawn with `font`.
     """
@@ -27,7 +27,7 @@ def break_lines(text: str, draw: ImageDraw.ImageDraw, font: ImageFont.ImageFont,
             line_width = draw.textlength(' '.join(line), font=font)
 
         if len(line) == 0:
-            # we couldn't "fit" any words on - so put one on anyway so we don't get stuck.
+            # we couldn't "fit" any words on - so put one on anyway, so we don't get stuck.
             line.append(words.pop(0))
 
         # remove the words in `words` that are now also in `line`
@@ -36,11 +36,11 @@ def break_lines(text: str, draw: ImageDraw.ImageDraw, font: ImageFont.ImageFont,
 
 
 class EPaperDisplay:
-    palette: _AbstractEnumMeta
+    palette: type[Palette]
     WIDTH: int
     HEIGHT: int
 
-    def __init__(self, p: _AbstractEnumMeta, w: int, h: int):
+    def __init__(self, p: type[Palette], w: int, h: int):
         self.palette = p
         self.WIDTH = w
         self.HEIGHT = h
@@ -57,7 +57,10 @@ def serve_image(route_handler: callable, epd: EPaperDisplay):
         else:
             imgformat = request.query.format.lower()
 
+        imgformat: typing.Literal['png', 'bmp']
+
         # This depends on the enum having WHITE defined.
+        # noinspection PyUnresolvedReferences
         img = Image.new("P", (epd.WIDTH, epd.HEIGHT), color=epd.palette.WHITE.value)
         img.putpalette(epd.palette.to_palette())
         draw = ImageDraw.Draw(img)
@@ -73,16 +76,12 @@ def serve_image(route_handler: callable, epd: EPaperDisplay):
 
         img_io.seek(0)
 
-        match imgformat:
-            case 'png':
-                content_type = 'image/png'
-            case 'bmp':
-                content_type = 'image/bmp'
-
-        response.set_header('Content-type', imgformat)
+        content_type = f"image/{imgformat}"
+        response.set_header('Content-type', content_type)
         return img_io.read()
 
     return wrapper
 
 
-serve_image_inky = lambda r_h: serve_image(r_h, EPD_INKY)
+def serve_image_inky(r_h: callable):
+    return serve_image(r_h, EPD_INKY)
