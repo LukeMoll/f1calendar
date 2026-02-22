@@ -1,6 +1,0 @@
-bottle
-# ical also looks good but more stars wins (sorry!)
-icalendar
-requests
-waitress
-pillow

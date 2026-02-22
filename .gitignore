@@ -1,6 +1,8 @@
 venv/
 .venv/
 
+*.egg-info
+
 # I have p-r.txt symlinked to requirements.txt for muscle memory
 # r.txt is what Nixpacks looks for
 pip-requirements.txt
