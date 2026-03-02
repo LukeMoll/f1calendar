@@ -1,5 +1,5 @@
 from PIL import ImageDraw
-from bottle import route
+from bottle import route, default_app
 from datetime import datetime as dt, timezone as tz
 from typing import Final
 
@@ -7,6 +7,14 @@ from .data_sources import schedule
 from .font import F1Reg, F1Bold, F1Wide
 from .pillow_helpers import serve_image_inky, EPaperDisplay, InkyCol, break_lines
 
+# import debug routes
+# from .debug_routes import app as debug_app
+# default_app().mount("/", debug_app)
+
+@route('/debug/schedule')
+def debug_schedule():
+    # TODO: move this out and put it in some nice web page.
+    return repr(schedule.get_next_grand_prix())
 
 @route('/')
 def index():
@@ -80,6 +88,9 @@ def countdown_inky(draw: ImageDraw, epd: EPaperDisplay):
     next_gp = schedule.get_next_grand_prix()
     days: int = (next_gp.DTSTART - dt.now(tz.utc)).days
 
+    if days < 7:
+        return raceweek_inky(draw, epd)
+
     draw.rectangle([0, 0, epd.WIDTH, epd.WIDTH], fill=InkyCol.BLACK.value)
 
     font = F1Bold(300)
@@ -117,3 +128,51 @@ def countdown_inky(draw: ImageDraw, epd: EPaperDisplay):
     )
 
     draw.text([0, 0], anchor="la", text="2026 Formula 1 World Championship", font=F1Wide(18), fill=InkyCol.WHITE.value)
+
+
+# Not annotated because it's delegated to from countdown_inky
+def raceweek_inky(draw : ImageDraw, epd: EPaperDisplay):
+    draw.rectangle([0,0, epd.WIDTH, epd.HEIGHT], fill=InkyCol.RED.value)
+
+    font = F1Bold(180)
+
+    margin = 16
+
+    textAnchor = [epd.WIDTH / 2, 20]
+
+    draw.text(
+        textAnchor,
+        anchor="rt",
+        text="RA",
+        font=font,
+        fill=InkyCol.WHITE.value
+    )
+
+    draw.text(textAnchor, anchor="lt",text="WE", font=font, fill=InkyCol.BLACK.value)
+
+    bb = draw.textbbox(textAnchor, anchor="rt", text="RA", font=font)
+
+    textAnchor[1] = bb[3] + margin
+
+    draw.text(
+        textAnchor,
+        anchor="rt",
+        text="CE",
+        font=font,
+        fill=InkyCol.WHITE.value
+    )
+
+    draw.text(textAnchor, anchor="lt", text="EK", font=font, fill=InkyCol.BLACK.value)
+
+    bb = draw.textbbox(textAnchor,
+        anchor="rt",
+        text="CE",
+        font=font)
+    
+    next_gp = schedule.get_next_grand_prix()
+    font = F1Reg(28)
+
+    # TODO: strip "F1: Grand Prix (...)" from the event
+    draw.text([epd.WIDTH / 2, epd.HEIGHT - 8], anchor="mb", text=next_gp.summary, font=font, fill=InkyCol.BLACK.value)
+
+    # next_gp.
