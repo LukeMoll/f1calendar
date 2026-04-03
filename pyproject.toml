@@ -3,7 +3,8 @@ name = "f1calendar"
 dynamic = ["version"]
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+# Keep compatibility with NixOS 25.11, which only has up to 3.13
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "bottle",
     "icalendar",
@@ -14,3 +15,9 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["f1cal"]
+
+[dependency-groups]
+dev = [
+    "jupyter",
+    "httpie"
+]
